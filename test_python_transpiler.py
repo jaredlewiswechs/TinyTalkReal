@@ -5,12 +5,19 @@ Tests all node types and edge cases
 ═══════════════════════════════════════════════════════════════
 """
 
-import sys
-sys.path.insert(0, '.')
+import sys, os
 
+_script_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path = [p for p in sys.path if os.path.abspath(p) != _script_dir]
+sys.path.insert(0, os.path.dirname(_script_dir))
+import importlib as _il
+if 'realTinyTalk' not in sys.modules:
+    sys.modules['realTinyTalk'] = _il.import_module(os.path.basename(_script_dir))
+
+from pathlib import Path
 from realTinyTalk.lexer import Lexer
 from realTinyTalk.parser import Parser, NodeType
-from realTinyTalk.backends.python.emitter import PythonEmitter, transpile_to_python
+from realTinyTalk.emitter import PythonEmitter, transpile_to_python
 
 
 def test_transpile(name: str, code: str, expected_contains: list = None, should_fail: bool = False):

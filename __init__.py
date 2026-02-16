@@ -1,8 +1,23 @@
 """
-realTinyTalk Python Backend
-Transpiles TinyTalk to Python
+realTinyTalk — The Friendly Programming Language
 """
 
-from .emitter import PythonEmitter
+from .kernel import ExecutionBounds
+from .lexer import Lexer
+from .parser import Parser
+from .runtime import Runtime
 
-__all__ = ['PythonEmitter']
+
+def run(code: str, bounds: ExecutionBounds = None) -> 'Value':
+    """Convenience function: lex → parse → execute TinyTalk code."""
+    if bounds is None:
+        bounds = ExecutionBounds()
+    lexer = Lexer(code)
+    tokens = lexer.tokenize()
+    parser = Parser(tokens)
+    ast = parser.parse()
+    rt = Runtime(bounds)
+    return rt.execute(ast)
+
+
+__all__ = ['run', 'ExecutionBounds', 'Lexer', 'Parser', 'Runtime']

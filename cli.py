@@ -12,12 +12,17 @@ Usage:
     tinytalk repl                    Interactive REPL
 """
 
-import sys
+import sys, os
+
+_script_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path = [p for p in sys.path if os.path.abspath(p) != _script_dir]
+sys.path.insert(0, os.path.dirname(_script_dir))
+import importlib as _il
+if 'realTinyTalk' not in sys.modules:
+    sys.modules['realTinyTalk'] = _il.import_module(os.path.basename(_script_dir))
+
 import argparse
 from pathlib import Path
-
-# Ensure package is importable
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
 def cmd_run(args):
@@ -34,8 +39,8 @@ def cmd_run(args):
 def cmd_build(args):
     """Compile to target language."""
     if args.target == 'js':
-        from realTinyTalk.backends.js import compile_to_js
-        
+        from realTinyTalk.emitter import transpile_to_python as compile_to_js
+
         source = Path(args.file).read_text(encoding='utf-8')
         js = compile_to_js(source, include_runtime=not args.no_runtime)
         

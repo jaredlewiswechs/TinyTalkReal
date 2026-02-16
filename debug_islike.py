@@ -1,13 +1,19 @@
 #!/usr/bin/env python3
 """Debug islike transpilation"""
 
-import sys
-sys.path.insert(0, 'c:/Users/jnlew/Newton-api')
+import sys, os
 
+_script_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path = [p for p in sys.path if os.path.abspath(p) != _script_dir]
+sys.path.insert(0, os.path.dirname(_script_dir))
+import importlib as _il
+if 'realTinyTalk' not in sys.modules:
+    sys.modules['realTinyTalk'] = _il.import_module(os.path.basename(_script_dir))
+
+from pathlib import Path
 from realTinyTalk.lexer import Lexer
 from realTinyTalk.parser import Parser
-from realTinyTalk.backends.js.emitter import JSEmitter
-from realTinyTalk.backends.python.emitter import PythonEmitter
+from realTinyTalk.emitter import PythonEmitter
 
 codes = [
     'show("test" islike "t*")',
@@ -52,10 +58,6 @@ for code in codes:
         walk_node(stmt)
     
     # Emit
-    js_emitter = JSEmitter(include_runtime=False)
-    js = js_emitter.emit(ast)
-    print(f"  JS: {js}")
-    
     py_emitter = PythonEmitter(include_runtime=False)
     py = py_emitter.emit(ast)
     print(f"  PY: {py}")
