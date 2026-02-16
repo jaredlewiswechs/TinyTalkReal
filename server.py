@@ -156,6 +156,21 @@ battle(archer, knight)
 battle(knight, archer)'''
         }
     ]
+
+    # Also include repository .tt programs so the dropdown stays complete.
+    repo_root = Path(__file__).parent
+    existing_names = {entry.get('name') for entry in examples}
+    for sample_path in sorted(repo_root.glob('*.tt')):
+        display_name = f"📄 {sample_path.stem.replace('_', ' ').title()}"
+        if display_name in existing_names:
+            continue
+        try:
+            code = sample_path.read_text(encoding='utf-8')
+        except Exception:
+            continue
+        examples.append({'name': display_name, 'code': code})
+        existing_names.add(display_name)
+
     return jsonify(examples)
 @app.route('/api/register', methods=['POST'])
 def register():
@@ -1366,6 +1381,21 @@ show("apply_twice(doubled, 3):" apply_twice(doubled, 3))
 show("apply_twice(squared, 2):" apply_twice(squared, 2))'''
         },
     ]
+
+
+    # Also include repository .tt programs so the dropdown stays complete.
+    repo_root = Path(__file__).parent
+    existing_names = {entry.get('name') for entry in examples}
+    for sample_path in sorted(repo_root.glob('*.tt')):
+        display_name = f"📄 {sample_path.stem.replace('_', ' ').title()}"
+        if display_name in existing_names:
+            continue
+        try:
+            code = sample_path.read_text(encoding='utf-8')
+        except Exception:
+            continue
+        examples.append({'name': display_name, 'code': code})
+        existing_names.add(display_name)
     return jsonify(examples)
 
 
