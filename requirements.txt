@@ -1,0 +1,2 @@
+# No external dependencies — TinyTalk core is pure Python stdlib.
+# This file is required by Vercel's Python runtime.
