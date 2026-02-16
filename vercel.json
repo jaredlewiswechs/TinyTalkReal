@@ -1,0 +1,19 @@
+{
+  "builds": [
+    {
+      "src": "api/**/*.py",
+      "use": "@vercel/python"
+    },
+    {
+      "src": "index.html",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    { "src": "/api/run", "dest": "/api/run.py" },
+    { "src": "/api/examples", "dest": "/api/examples.py" },
+    { "src": "/api/transpile/js", "dest": "/api/transpile/js.py" },
+    { "src": "/api/transpile/python", "dest": "/api/transpile/python.py" },
+    { "src": "/(.*)", "dest": "/index.html" }
+  ]
+}
