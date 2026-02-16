@@ -2931,7 +2931,7 @@ for i in range(10) {
         async function transpileCode(code) {
             // Transpile to JavaScript
             try {
-                const jsResponse = await fetch('/api/transpile/js', {
+                const jsResponse = await apiFetch('/api/transpile/js', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ code, include_runtime: true })
@@ -2950,7 +2950,7 @@ for i in range(10) {
             
             // Transpile to Python
             try {
-                const pyResponse = await fetch('/api/transpile/python', {
+                const pyResponse = await apiFetch('/api/transpile/python', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ code, include_runtime: true })
@@ -2987,7 +2987,7 @@ for i in range(10) {
             transpileCode(code);
 
             try {
-                const response = await fetch('/api/run', {
+                const response = await apiFetch('/api/run', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ code })
@@ -3058,6 +3058,19 @@ for i in range(10) {
 
             runBtn.disabled = false;
             runBtn.innerHTML = '▶ Run <kbd>Ctrl+↵</kbd>';
+        }
+
+        function apiFetch(path, options) {
+            // Some iOS in-app browsers reject relative fetch URLs with
+            // “The string did not match the expected pattern”.
+            try {
+                const base = window.location.origin || `${window.location.protocol}//${window.location.host}`;
+                return fetch(new URL(path, base).toString(), options);
+            } catch (_) {
+                const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+                const fallbackBase = `${window.location.protocol}//${window.location.host}`;
+                return fetch(`${fallbackBase}${normalizedPath}`, options);
+            }
         }
 
         function escapeHtml(text) {
