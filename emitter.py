@@ -26,11 +26,20 @@ Mapping:
   blueprint B { }      →  class B: ...
 """
 
-import sys
+import sys, os
+
+# Fix path if running directly: types.py in this dir shadows stdlib types module
+_script_dir = os.path.dirname(os.path.abspath(__file__))
+if _script_dir in sys.path:
+    sys.path = [p for p in sys.path if os.path.abspath(p) != _script_dir]
+    sys.path.insert(0, os.path.dirname(_script_dir))
+if 'realTinyTalk' not in sys.modules:
+    sys.path.insert(0, os.path.dirname(_script_dir))
+    import importlib as _il
+    sys.modules['realTinyTalk'] = _il.import_module(os.path.basename(_script_dir))
+
 from pathlib import Path
 from typing import List, Optional, Any
-
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
 from realTinyTalk.parser import (
     Program, ASTNode, NodeType, Member,

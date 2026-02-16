@@ -12,8 +12,17 @@ Features:
 - Detailed vs summary output modes
 """
 
-import sys
-import os
+import sys, os
+
+# Fix path BEFORE any stdlib import: types.py in this dir shadows stdlib types module.
+# Python auto-adds script dir to sys.path[0]; remove it and add parent instead.
+_script_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path = [p for p in sys.path if os.path.abspath(p) != _script_dir]
+sys.path.insert(0, os.path.dirname(_script_dir))
+import importlib as _il
+if 'realTinyTalk' not in sys.modules:
+    sys.modules['realTinyTalk'] = _il.import_module(os.path.basename(_script_dir))
+
 import io
 import re
 import time
@@ -24,9 +33,6 @@ from contextlib import redirect_stdout
 from dataclasses import dataclass, field
 from typing import List, Optional, Tuple, Dict
 from enum import Enum
-
-# Add parent to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from realTinyTalk import run
 from realTinyTalk.runtime import TinyTalkError

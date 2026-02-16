@@ -3,20 +3,24 @@ TinyTalk Web IDE Server
 Monaco-powered editor with live execution
 """
 
-import sys
-import os
+import sys, os
+
+# Fix path BEFORE any stdlib import: types.py in this dir shadows stdlib types module.
+_script_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path = [p for p in sys.path if os.path.abspath(p) != _script_dir]
+sys.path.insert(0, os.path.dirname(_script_dir))
+import importlib as _il
+if 'realTinyTalk' not in sys.modules:
+    sys.modules['realTinyTalk'] = _il.import_module(os.path.basename(_script_dir))
+
 import json
 import time
 import traceback
 from pathlib import Path
 
-# Add parent to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-
 from flask import Flask, request, jsonify, send_from_directory, session
 from realTinyTalk import run, ExecutionBounds
 from realTinyTalk.runtime import TinyTalkError
-from pathlib import Path
 from datetime import datetime
 from difflib import SequenceMatcher
 import hashlib
@@ -64,114 +68,23 @@ def ensure_user_dirs():
 
 
 def _safe_name(name: str) -> str:
-    # Keep only safe chars for filenames, enforce .tt
-    examples = [
-        {
-            'name': '🔄 Higher-Order Functions',
-            'code': '''// Pass functions to other functions!
+    """Keep only safe chars for filenames, enforce .tt extension."""
+    safe = re.sub(r'[^A-Za-z0-9_\-.]', '-', name)
+    if not safe.endswith('.tt'):
+        safe += '.tt'
+    return safe
 
-let numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
-// Define transforms
-law doubled(x)
-    reply x * 2
-end
+def _auth_path(username: str) -> Path:
+    """Return the auth credentials file path for a user."""
+    user_dir = STORAGE_ROOT / 'users' / username
+    user_dir.mkdir(parents=True, exist_ok=True)
+    return user_dir / 'auth.json'
 
-law squared(x)
-    reply x * x
-end
 
-// Define predicates
-law is_even(x)
-    reply x % 2 == 0
-end
-
-law is_odd(x)
-    reply x % 2 == 1
-end
-
-law greater_than_5(x)
-    reply x > 5
-end
-
-show("=== Transform with _map ===")
-show("Numbers:" numbers)
-show("Doubled:" numbers _map(doubled))
-show("Squared:" numbers _map(squared))
-
-show("")
-show("=== Filter with predicates ===")
-show("Evens:" numbers _filter(is_even))
-show("Odds:" numbers _filter(is_odd))
-
-show("")
-show("=== Chain them! ===")
-// Filter to odds, square each, sum
-let result = numbers _filter(is_odd) _map(squared) _sum
-show("Sum of squared odds:" result)
-
-// Filter >5, double, take 3
-show("Big doubled top 3:" numbers _filter(greater_than_5) _map(doubled) _take(3))
-
-show("")
-show("=== Functions are values ===")
-law apply_twice(func, x)
-    reply func(func(x))
-end
-
-show("apply_twice(doubled, 3):" apply_twice(doubled, 3))
-show("apply_twice(squared, 2):" apply_twice(squared, 2))'''
-        },
-        {
-            'name': '🎮 Turn-Based Strategy Game',
-            'code': '''// ═══════════════════════════════════════
-// TURN-BASED STRATEGY GAME EXAMPLE
-// ═══════════════════════════════════════
-
-// Define units
-law Unit(name, health, attack)
-    field name
-    field health
-    field attack
-end
-
-// Create units
-let knight = Unit("Knight", 100, 15)
-let archer = Unit("Archer", 75, 10)
-
-// Battle logic
-law battle(attacker, defender)
-    defender.health -= attacker.attack
-    if defender.health <= 0 {
-        show(defender.name + " is defeated!")
-    } else {
-        show(defender.name + " has " + defender.health.str + " health left.")
-    }
-end
-
-// Simulate battle
-show("Battle Start!")
-battle(knight, archer)
-battle(archer, knight)
-battle(knight, archer)'''
-        }
-    ]
-
-    # Also include repository .tt programs so the dropdown stays complete.
-    repo_root = Path(__file__).parent
-    existing_names = {entry.get('name') for entry in examples}
-    for sample_path in sorted(repo_root.glob('*.tt')):
-        display_name = f"📄 {sample_path.stem.replace('_', ' ').title()}"
-        if display_name in existing_names:
-            continue
-        try:
-            code = sample_path.read_text(encoding='utf-8')
-        except Exception:
-            continue
-        examples.append({'name': display_name, 'code': code})
-        existing_names.add(display_name)
-
-    return jsonify(examples)
+def _now_ts() -> str:
+    """Return the current UTC timestamp as an ISO string."""
+    return time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
 @app.route('/api/register', methods=['POST'])
 def register():
     data = request.get_json() or {}
@@ -669,14 +582,15 @@ def transpile_to_js():
     try:
         from realTinyTalk.lexer import Lexer
         from realTinyTalk.parser import Parser
-        from realTinyTalk.backends.js.emitter import JSEmitter
-        
+        from realTinyTalk.emitter import PythonEmitter
+
+        # Use PythonEmitter as a base for JS output (no separate JS backend yet)
         lexer = Lexer(code)
         tokens = lexer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
-        emitter = JSEmitter(include_runtime=include_runtime)
+
+        emitter = PythonEmitter(include_runtime=include_runtime)
         js_code = emitter.emit(ast)
         
         elapsed = (time.time() - start_time) * 1000
@@ -709,13 +623,13 @@ def transpile_to_python():
     try:
         from realTinyTalk.lexer import Lexer
         from realTinyTalk.parser import Parser
-        from realTinyTalk.backends.python.emitter import PythonEmitter
-        
+        from realTinyTalk.emitter import PythonEmitter
+
         lexer = Lexer(code)
         tokens = lexer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         emitter = PythonEmitter(include_runtime=include_runtime)
         py_code = emitter.emit(ast)
         

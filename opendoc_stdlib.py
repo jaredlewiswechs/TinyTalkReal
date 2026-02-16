@@ -26,10 +26,18 @@ Users can work with compound documents:
 ═══════════════════════════════════════════════════════════════════════════════
 """
 
-import sys
-import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import sys, os
 
+_script_dir = os.path.dirname(os.path.abspath(__file__))
+if _script_dir in sys.path:
+    sys.path = [p for p in sys.path if os.path.abspath(p) != _script_dir]
+    sys.path.insert(0, os.path.dirname(_script_dir))
+if 'realTinyTalk' not in sys.modules:
+    sys.path.insert(0, os.path.dirname(_script_dir))
+    import importlib as _il
+    sys.modules['realTinyTalk'] = _il.import_module(os.path.basename(_script_dir))
+
+from pathlib import Path
 from typing import List, Dict, Any
 from realTinyTalk.types import Value, ValueType
 from realTinyTalk.foghorn_stdlib import foghorn_to_tinytalk, tinytalk_to_foghorn
